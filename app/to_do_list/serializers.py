@@ -15,7 +15,6 @@ class AuthorSerializer(serializers.ModelSerializer):
 class TasksSerializer(serializers.ModelSerializer):
     """ Список задач """
 
-    # Меняем вывод, вместо `ID` пользователя будет `Имя`
     author = serializers.SlugRelatedField(slug_field='username', read_only=True)
 
     class Meta:
@@ -24,10 +23,9 @@ class TasksSerializer(serializers.ModelSerializer):
 
 
 class CommentsSerializer(serializers.ModelSerializer):
-    """ Комментарии. Используется в методе: `/note/{note_id}/` Статя блога """
+    """ Комментарии """
     author = AuthorSerializer(read_only=True)
 
-    # Меняем название параметра в ответе
     comment_id = serializers.SerializerMethodField('get_comment_id')
 
     def get_comment_id(self, obj):
@@ -45,7 +43,7 @@ class TaskDetailSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Task
-        exclude = ('public',)  # Исключить эти поля
+
 
     def to_representation(self, instance):
         """ Переопределение вывода. Меняем формат даты в ответе """
@@ -81,4 +79,4 @@ class CommentAddSerializer(serializers.ModelSerializer):
     class Meta:
         model = Comment
         fields = "__all__"
-        read_only_fields = ['date_add', 'author', 'note']  # Только для чтения
+        read_only_fields = ['date_add', 'author', 'note']

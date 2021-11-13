@@ -1,4 +1,5 @@
 from django.db.models import Q
+from django.http import HttpResponse
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status
 from rest_framework.filters import OrderingFilter
@@ -6,6 +7,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import NotFound
+from django.shortcuts import render
 
 from .models import Task, Comment
 from .serializers import TasksSerializer, TaskDetailSerializer, TaskEditorSerializer, CommentAddSerializer
@@ -16,22 +18,13 @@ class TasksView(APIView):
 
     def get(self, request):
         """ Получить задачи """
+        tasks = Task.objects.filter(a).order_by('-date_add', 'title').select_related('author')
 
-        # Это НЕ оптимизированный запрос
-        # param = request.GET
-        # print(param['public'])
-        # tasks = Task.objects.filter(public=param['public']).filter(important=param['important']).order_by('-date_add', 'title')
-        tasks = Task.objects.all().filter(
-            Q(public=request.GET['public']) |
-            Q(important=request.GET['important'])
-        )
-        # `select_related` - это оптимизация запроса (join). Отношение Один к Одному
-        # https://django.fun/docs/django/ru/3.1/ref/models/querysets/#select-related
-        # notes = Note.objects.filter(public=True).order_by('-date_add', 'title').select_related('author')
-        # notes = notes.only('id', 'title', 'message', 'date_add', 'author__username')
+        a = Q(public=True)
+        if request.GET['important']:
+            tasks = tasks.filter(important=request.GET['important']).fi, important2=request.GET['important'])
+            # a = a | Q(important=True)
 
-        # print(notes.query)
-        # logger.debug(notes.query)
 
         serializer = TasksSerializer(tasks, many=True)
 
@@ -44,18 +37,13 @@ class TaskDetailView(APIView):
     def get(self, request, task_id):
         """ Получить задачу """
 
-        # Это НЕ оптимизированный запрос
-        task = Task.objects.filter(pk=task_id, public=True).first()
-
-        # `prefetch_related` - это оптимизация запроса для отношения Многие к Одному
-        # https://django.fun/docs/django/ru/3.1/ref/models/querysets/#prefetch-related
-        # note = Note.objects.select_related(
-        #     'author'
-        # ).prefetch_related(
-        #     'comments'
-        # ).filter(
-        #     pk=note_id, public=True
-        # ).first()
+        task = Task.objects.select_related(
+            'author'
+        ).prefetch_related(
+            'comments'
+        ).filter(
+            pk=task_id, public=True
+        ).first()
 
         if not task:
             raise NotFound(f'Опубликованная статья с id={task_id} не найдена')
@@ -69,30 +57,22 @@ class TaskEditorView(APIView):
     permission_classes = (IsAuthenticated,)
 
     def post(self, request):
-        """ Новая статья для блога """
+        """ Новая задача """
 
-        # Передаем в сериалайзер (валидатор) данные из запроса
         new_task = TaskEditorSerializer(data=request.data)
 
-        # Проверка параметров
         if new_task.is_valid():
-            # Записываем новую статью и добавляем текущего пользователя как автора
             new_task.save(author=request.user)
             return Response(new_task.data, status=status.HTTP_201_CREATED)
         else:
             return Response(new_task.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def patch(self, request, task_id):
-
-        # Находим редактируемую статью
+        """Обновление задачи"""
         task = Task.objects.filter(pk=task_id, author=request.user).first()
         if not task:
-            raise NotFound(f'Статья с id={task_id} для пользователя {request.user.username} не найдена')
+            raise NotFound(f'Задача с id={task_id} для пользователя {request.user.username} не найдена')
 
-        # Для сохранения изменений необходимо передать 3 параметра
-        # Объект связанный со статьей в базе: `note`
-        # Изменяемые данные: `data`
-        # Флаг частичного оновления (т.е. можно проигнорировать обязательные поля): `partial`
         new_task = TaskEditorSerializer(task, data=request.data, partial=True)
 
         if new_task.is_valid():

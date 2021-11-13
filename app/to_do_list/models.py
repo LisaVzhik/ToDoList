@@ -31,5 +31,4 @@ class Comment(models.Model):
     message = models.TextField(default='', blank=True, verbose_name='Текст комментария')
 
     def __str__(self):
-        # https://django.fun/docs/django/ru/3.1/ref/models/instances/#django.db.models.Model.get_FOO_display
         return f'{self.message or "Без комментариев"}'

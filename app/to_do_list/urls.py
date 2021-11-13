@@ -5,7 +5,7 @@ from . import views
 app_name = 'to_do_list'
 urlpatterns = [
     path('tasks/', views.TasksView.as_view(), name='notes'),  # Список всех задач public=True
-    path('task/<int:task_id>/', views.TaskDetailView.as_view(), name='note'),  #
+    path('task/<int:task_id>/', views.TaskDetailView.as_view(), name='note'),  # Одна задача
 
     path('task/add/', views.TaskEditorView.as_view(), name='add'),  # Добавление новой задачи
     path('task/<int:task_id>/save/', views.TaskEditorView.as_view(), name='save'),  # редактирование записи
